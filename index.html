@@ -258,9 +258,11 @@ $("#build").onclick = () => {
   $("#jsonOut").textContent = JSON.stringify(ticket, null, 2);
 
   // makeTicket code output
-  const esc = s => s.replace(/\\/g,"\\\\").replace(/`/g,"\\`");
-  const attCode = attachments.map(a=>`{ type: "image", url: "${a.url}", title: "${esc(a.title||"")}" }`).join(",\n        ");
-  const code = `
+   // makeTicket code output
+  const esc = s => s.replace(/\\/g,"\\\\").replace(/`/g,"\\`").replace(/"/g,'\\"');
+  const attCode = attachments.map(a=>`    {\n      type: "image",\n      url: "${a.url}",\n      title: "${esc(a.title||"")}"\n    }`).join(",\n        ");
+  
+  const code = `// Ticket
 makeTicket({
   subject: "${esc(subject)}",
   requester: "${esc(requester)}",
@@ -271,16 +273,18 @@ makeTicket({
   macroOnly: ${macroOnly},
   macroCommand: "${esc(macroCommand)}",
   sections: ${macroOnly ? "[]" : '["Greeting","Opener","Solution","Closer","Sign-Off"]'},
-  requirements: "${esc(ticket.requirements)}",
+  requirements:
+    "${esc(ticket.requirements)}",
   category: "${esc(category)}",
   intent: "${esc(intent)}",
   accountId: "${esc(accountId)}",
   tags: [${tags.map(t=>`"${esc(t)}"`).join(", ")}],
-  body: "${esc(body)}",
+  body:
+    "${esc(body)}",
   attachments: [
-    ${attCode}
+${attCode}
   ]
-})`.trim();
+}),`;
 
   $("#codeOut").textContent = code;
   toast("Built!");
