@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Ticket Builder</title>
+<link rel="icon" href="data:,">
+<style>
+:root{
+  --bg:#0b1220;--card:#0f172a;--ink:#e5e7eb;--muted:#94a3b8;--line:#1f2937;
+  --accent:#22c55e;--accent2:#16a34a;--warn:#ef4444
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0b1220,#0a0f1a 28%,#0b1220);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+.wrapper{max-width:980px;margin:32px auto;padding:0 16px}
+.h1{font-weight:800;font-size:24px;margin-bottom:4px}
+.sub{color:var(--muted);margin-bottom:16px}
+.card{background:rgba(15,23,42,.9);border:1px solid var(--line);border-radius:16px;padding:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid1{display:grid;grid-template-columns:1fr;gap:12px}
+.input,.select,textarea{
+  width:100%;border:1px solid #243143;background:#0b1527;color:var(--ink);
+  border-radius:10px;padding:10px 12px;font:inherit
+}
+textarea{min-height:120px;resize:vertical}
+.label{font-size:12px;color:var(--muted);margin-bottom:6px}
+.row{display:flex;gap:8px;align-items:center}
+.btn{
+  border:1px solid #2a364a;background:#101a2e;color:var(--ink);
+  border-radius:10px;padding:10px 12px;font:13px;cursor:pointer
+}
+.btn:hover{background:#0c1528}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#00140a;font-weight:700}
+.btn.primary:hover{background:var(--accent2)}
+.btn.ghost{background:transparent}
+.bad{color:#fecaca}
+.small{font-size:12px;color:var(--muted)}
+.att{display:grid;grid-template-columns:1fr 200px auto;gap:8px}
+.att img{max-height:44px;border-radius:8px;border:1px solid #243143}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.out{background:#0a1426;border:1px dashed #22304a;border-radius:12px;padding:12px;font:12px ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto}
+.pill{font-size:11px;border:1px solid #2a364a;border-radius:999px;padding:2px 8px;color:var(--muted)}
+hr{border:none;border-top:1px solid #1a2234;margin:16px 0}
+.toast{position:fixed;right:16px;bottom:16px;background:#0f172a;color:#fff;padding:10px 12px;border-radius:10px;opacity:0;transform:translateY(8px);transition:.25s}
+.toast.show{opacity:1;transform:translateY(0)}
+@media (max-width:860px){.grid2,.kv,.att{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="h1">Ticket Builder</div>
+  <div class="sub">Fill this out &rarr; copy JSON or a ready-to-paste <span class="pill">makeTicket({...})</span>.</div>
+
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <div class="label">Subject</div>
+        <input id="subject" class="input" placeholder="Short title (shown in list)"/>
+      </div>
+      <div>
+        <div class="label">Requester Email</div>
+        <input id="requester" class="input" placeholder="name@company.com"/>
+      </div>
+
+      <div>
+        <div class="label">Channel</div>
+        <select id="channel" class="select">
+          <option>Email</option><option>Web</option><option>Chat</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">Hours Ago</div>
+        <input id="hoursAgo" type="number" min="0" value="2" class="input"/>
+      </div>
+
+      <div>
+        <div class="label">Required Status</div>
+        <select id="reqStatus" class="select">
+          <option>Open</option><option>Pending</option><option>Solved</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">Required Assignee</div>
+        <select id="reqAssignee" class="select">
+          <option>Myself</option><option>Support Tier 2</option>
+          <option>Support Tier 3</option><option>Fraud General</option><option>Payout</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="label">Category</div>
+        <input id="category" class="input" placeholder="Support / Account / Billing"/>
+      </div>
+      <div>
+        <div class="label">Intent</div>
+        <input id="intent" class="input" placeholder="Login Issue / Drawdown Info"/>
+      </div>
+
+      <div>
+        <div class="label">Account ID</div>
+        <input id="accountId" class="input" placeholder="APEX-00000"/>
+      </div>
+      <div>
+        <div class="label">Tags (comma-separated)</div>
+        <input id="tags" class="input" placeholder="account_questions, language_en"/>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="row">
+        <label class="row"><input type="checkbox" id="macroOnly"/> Macro-only ticket</label>
+        <span class="small">If checked, trainee will enter only a slash command.</span>
+      </div>
+      <div id="macroCmdWrap" class="grid1" style="margin-top:8px;display:none">
+        <div>
+          <div class="label">Macro Command (include leading “/”)</div>
+          <input id="macroCmd" class="input" placeholder="/EVAL – Failed Drawdown Threshold – Revoked/Admin Only Status"/>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <div>
+      <div class="label">Customer Message</div>
+      <textarea id="body" placeholder="Paste the customer's message…"></textarea>
+    </div>
+
+    <hr/>
+
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="label">Attachment Images</div>
+      <button class="btn" id="addImg">+ Add image</button>
+    </div>
+    <div id="attList" class="grid1"></div>
+    <div class="small" style="margin-top:6px">Use <strong>direct image URLs</strong> (e.g., <em>https://i.imgur.com/abc123.png</em>)</div>
+
+    <hr/>
+
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button class="btn primary" id="build">Build Output</button>
+      <button class="btn" id="copyJson">Copy JSON</button>
+      <button class="btn" id="copyMakeTicket">Copy makeTicket({...})</button>
+      <span id="err" class="small bad" role="status"></span>
+    </div>
+  </div>
+
+  <div style="height:12px"></div>
+
+  <div class="kv">
+    <div>
+      <div class="label">JSON (for APIs or storage)</div>
+      <pre id="jsonOut" class="out" aria-live="polite"></pre>
+    </div>
+    <div>
+      <div class="label">makeTicket({...}) (paste into your sim)</div>
+      <pre id="codeOut" class="out" aria-live="polite"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Copied!</div>
+
+<script>
+// minimal helpers
+const $ = sel => document.querySelector(sel);
+const $$ = sel => [...document.querySelectorAll(sel)];
+const toast = (msg="Copied!") => { const t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1200); };
+
+const attList = $("#attList");
+$("#addImg").onclick = () => addAttRow();
+
+function addAttRow(url="", title=""){
+  const row = document.createElement("div");
+  row.className="att";
+  row.innerHTML = `
+    <input class="input att-url" placeholder="https://i.imgur.com/abc123.png" value="${url}"/>
+    <input class="input att-title" placeholder="Short caption" value="${title}"/>
+    <div class="row">
+      <button class="btn ghost previewBtn" type="button">Preview</button>
+      <button class="btn ghost removeBtn" type="button">✕</button>
+    </div>
+    <div class="row" style="grid-column:1/-1;gap:8px;display:none">
+      <img alt="preview"/>
+      <span class="small"></span>
+    </div>
+  `;
+  attList.appendChild(row);
+
+  const urlInput = row.querySelector(".att-url");
+  const titleInput = row.querySelector(".att-title");
+  const previewBtn = row.querySelector(".previewBtn");
+  const removeBtn = row.querySelector(".removeBtn");
+  const previewRow = row.children[3];
+  const img = previewRow.querySelector("img");
+  const note = previewRow.querySelector("span");
+
+  previewBtn.onclick = () => {
+    const u = urlInput.value.trim();
+    if(!u){ note.textContent = "Enter a URL first."; previewRow.style.display="flex"; return; }
+    img.src = u;
+    img.onload = () => { previewRow.style.display="flex"; note.textContent = "Looks good."; };
+    img.onerror = () => { previewRow.style.display="flex"; note.textContent = "Couldn’t load. Make sure it’s a direct image link (.png/.jpg)."; };
+  };
+  removeBtn.onclick = () => row.remove();
+}
+
+// macro toggle
+$("#macroOnly").onchange = (e)=> { $("#macroCmdWrap").style.display = e.target.checked ? "grid" : "none"; };
+
+// build output
+$("#build").onclick = () => {
+  $("#err").textContent = "";
+  const subject = $("#subject").value.trim();
+  const requester = $("#requester").value.trim();
+  const channel = $("#channel").value;
+  const hoursAgo = Math.max(0, Number($("#hoursAgo").value || 0));
+  const requiredStatus = $("#reqStatus").value;
+  const requiredAssignee = $("#reqAssignee").value;
+  const category = $("#category").value.trim();
+  const intent = $("#intent").value.trim();
+  const accountId = $("#accountId").value.trim();
+  const tags = $("#tags").value.split(",").map(x=>x.trim()).filter(Boolean);
+  const body = $("#body").value.trim();
+  const macroOnly = $("#macroOnly").checked;
+  const macroCommand = $("#macroCmd").value.trim();
+
+  if(!subject || !requester || !body){
+    $("#err").textContent = "Subject, Requester, and Customer Message are required.";
+    return;
+  }
+  if(macroOnly && !macroCommand.startsWith("/")){
+    $("#err").textContent = "Macro command must start with '/'.";
+    return;
+  }
+
+  const attachments = [];
+  $$(".att").forEach(row=>{
+    const url = row.querySelector(".att-url").value.trim();
+    const title = row.querySelector(".att-title").value.trim();
+    if(url){
+      attachments.push({ type:"image", url, title: title || "Attachment" });
+    }
+  });
+
+  const ticket = {
+    subject, requester, channel, hoursAgo,
+    requiredStatus, requiredAssignee,
+    macroOnly, macroCommand,
+    sections: macroOnly ? [] : ["Greeting","Opener","Solution","Closer","Sign-Off"],
+    requirements: macroOnly
+      ? "Use the specified macro; no additional prose is required."
+      : "Write a professional reply following the structure (Greeting, Opener, Solution, Closer, Sign-Off).",
+    category, intent, accountId, tags, body, attachments
+  };
+
+  // JSON output
+  $("#jsonOut").textContent = JSON.stringify(ticket, null, 2);
+
+  // makeTicket code output
+  const esc = s => s.replace(/\\/g,"\\\\").replace(/`/g,"\\`");
+  const attCode = attachments.map(a=>`{ type: "image", url: "${a.url}", title: "${esc(a.title||"")}" }`).join(",\n        ");
+  const code = `
+makeTicket({
+  subject: "${esc(subject)}",
+  requester: "${esc(requester)}",
+  channel: "${channel}",
+  hoursAgo: ${hoursAgo},
+  requiredStatus: "${requiredStatus}",
+  requiredAssignee: "${requiredAssignee}",
+  macroOnly: ${macroOnly},
+  macroCommand: "${esc(macroCommand)}",
+  sections: ${macroOnly ? "[]" : '["Greeting","Opener","Solution","Closer","Sign-Off"]'},
+  requirements: "${esc(ticket.requirements)}",
+  category: "${esc(category)}",
+  intent: "${esc(intent)}",
+  accountId: "${esc(accountId)}",
+  tags: [${tags.map(t=>`"${esc(t)}"`).join(", ")}],
+  body: "${esc(body)}",
+  attachments: [
+    ${attCode}
+  ]
+})`.trim();
+
+  $("#codeOut").textContent = code;
+  toast("Built!");
+};
+
+// copy buttons
+$("#copyJson").onclick = () => {
+  navigator.clipboard.writeText($("#jsonOut").textContent || "").then(()=>toast("JSON copied"));
+};
+$("#copyMakeTicket").onclick = () => {
+  navigator.clipboard.writeText($("#codeOut").textContent || "").then(()=>toast("makeTicket copied"));
+};
+
+// add one blank attachment row by default (optional)
+addAttRow();
+</script>
+</body>
+</html>
